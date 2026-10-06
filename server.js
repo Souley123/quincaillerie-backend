@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -14,6 +16,18 @@ const originesAutorisees = (process.env.CORS_ORIGINS || '')
   .split(',')
   .map(origine => origine.trim())
   .filter(Boolean);
+// Sécurisation des en-têtes HTTP
+app.use(helmet());
+
+// Limitation des requêtes pour bloquer les scans et attaques
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limite à 100 requêtes par IP
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', limiter);
+
 app.use(cors({
   origin: (origine, callback) => {
     if (!origine || originesAutorisees.length === 0 || originesAutorisees.includes(origine)) {
